@@ -8,10 +8,12 @@ Maps onto Kim et al. Section 3 (arXiv:2410.08559), at a much smaller scale:
 - predictor: a narrower transformer. Mask tokens carry the hidden times (Sec 3.2).
 - loss: smooth L1 between predicted and teacher embeddings at masked times.
 
-The mask is a set of time indices shared by the batch. In temporal mode one
-token already contains every lead. In per_lead mode each lead is patched on
-its own and masked times are dropped before the leads are mixed, so a hidden
-time cannot be copied from another lead. CroPA is not here.
+The mask is a set of time indices shared by the batch. Random mode hides
+60–70% of times independently. Multiblock mode hides four spans, each about
+17.5–22.5% of the recording, and lets those spans overlap. In temporal mode
+one token already contains every lead. In per_lead mode each lead is patched
+on its own and masked times are dropped before the leads are mixed. CroPA is
+not here.
 """
 
 from __future__ import annotations
@@ -89,6 +91,41 @@ class Predictor(nn.Module):
         return pred.index_select(1, mask_idx)
 
 
+def block_length_bounds(n_patches: int, ratio_min: float, ratio_max: float) -> tuple[int, int]:
+    """Inclusive span length for one multi-block mask, leaving one time visible."""
+    low = max(1, int(round(ratio_min * n_patches)))
+    high = max(low, int(round(ratio_max * n_patches)))
+    high = min(high, n_patches - 1)
+    low = min(low, high)
+    return low, high
+
+
+def sample_multiblock_mask(
+    n_patches: int,
+    n_blocks: int,
+    ratio_min: float,
+    ratio_max: float,
+    device: torch.device,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Union of `n_blocks` contiguous spans, shared by the whole batch.
+
+    Spans may overlap. Overlap merges them into a longer run, which is the
+    multi-block target used by Kim et al.: four blocks at ratio (0.175, 0.225).
+    """
+    low, high = block_length_bounds(n_patches, ratio_min, ratio_max)
+    masked = torch.zeros(n_patches, dtype=torch.bool, device=device)
+    for _ in range(n_blocks):
+        length = int(torch.randint(low, high + 1, (), device=device).item())
+        start = int(torch.randint(0, n_patches - length + 1, (), device=device).item())
+        masked[start : start + length] = True
+    if not bool(masked.any()):
+        masked[0] = True
+    if bool(masked.all()):
+        masked[int(torch.randint(0, n_patches, (), device=device).item())] = False
+    index = torch.arange(n_patches, device=device)
+    return index[~masked], index[masked]
+
+
 def sample_time_mask(
     n_patches: int,
     ratio_min: float,
@@ -123,8 +160,14 @@ class JEPA(nn.Module):
     def __init__(self, cfg: Config):
         super().__init__()
         self.n_patches = cfg.n_patches
+        self.mask_mode = cfg.mask_mode
         self.mask_ratio_min = cfg.mask_ratio_min
         self.mask_ratio_max = cfg.mask_ratio_max
+        self.multiblock_count = cfg.multiblock_count
+        self.multiblock_ratio_min = cfg.multiblock_ratio_min
+        self.multiblock_ratio_max = cfg.multiblock_ratio_max
+        if self.mask_mode not in ("random", "multiblock"):
+            raise ValueError(f"unknown mask_mode {self.mask_mode}")
         encoder_kwargs = dict(
             n_leads=cfg.n_leads,
             n_patches=cfg.n_patches,
@@ -157,12 +200,21 @@ class JEPA(nn.Module):
         return self
 
     def forward(self, x: torch.Tensor) -> JEPAOutput:
-        keep_idx, mask_idx = sample_time_mask(
-            self.n_patches,
-            self.mask_ratio_min,
-            self.mask_ratio_max,
-            x.device,
-        )
+        if self.mask_mode == "multiblock":
+            keep_idx, mask_idx = sample_multiblock_mask(
+                self.n_patches,
+                self.multiblock_count,
+                self.multiblock_ratio_min,
+                self.multiblock_ratio_max,
+                x.device,
+            )
+        else:
+            keep_idx, mask_idx = sample_time_mask(
+                self.n_patches,
+                self.mask_ratio_min,
+                self.mask_ratio_max,
+                x.device,
+            )
         context = self.context_encoder(x, keep_idx)
         with torch.no_grad():
             target_tokens = self.target_encoder(x)

@@ -24,6 +24,11 @@ class Config:
     lead_dim: int = 32
     mask_ratio_min: float = 0.6
     mask_ratio_max: float = 0.7
+    # random: independent time indices. multiblock: 4 overlapping spans.
+    mask_mode: str = "random"
+    multiblock_count: int = 4
+    multiblock_ratio_min: float = 0.175
+    multiblock_ratio_max: float = 0.225
     ema_start: float = 0.996
     ema_end: float = 1.0
     lr: float = 1e-3
