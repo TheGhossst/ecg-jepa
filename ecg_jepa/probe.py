@@ -189,7 +189,8 @@ def run_probe(
     weight_decay: float = 0.05,
     seed: int = 0,
     device: str | None = None,
-) -> str:
+    skip_random: bool = False,
+) -> dict:
     torch_device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
     pin_memory = torch_device.type == "cuda"
     encoder, cfg = load_target_encoder(Path(ckpt), torch_device)
@@ -213,6 +214,13 @@ def run_probe(
         device=torch_device,
     )
     print(format_result("pretrained", pretrained), flush=True)
+    result = {
+        "pretrained_auc": float(pretrained["test_auc"]),
+        "pretrained_per_class": {key: float(value) for key, value in pretrained["per_class"].items()},
+        "pretrained_val_auc": float(pretrained["val_auc"]),
+    }
+    if skip_random:
+        return result
 
     print("extracting random-encoder features", flush=True)
     random_encoder = fresh_target_encoder(cfg, torch_device, seed + 1)
@@ -238,15 +246,11 @@ def run_probe(
         f"delta_fold10 {pretrained['test_auc'] - baseline['test_auc']:+.4f}"
     )
     print(summary, flush=True)
-    return {
-        "pretrained_auc": float(pretrained["test_auc"]),
-        "random_auc": float(baseline["test_auc"]),
-        "delta": float(pretrained["test_auc"] - baseline["test_auc"]),
-        "pretrained_per_class": {key: float(value) for key, value in pretrained["per_class"].items()},
-        "random_per_class": {key: float(value) for key, value in baseline["per_class"].items()},
-        "pretrained_val_auc": float(pretrained["val_auc"]),
-        "random_val_auc": float(baseline["val_auc"]),
-    }
+    result["random_auc"] = float(baseline["test_auc"])
+    result["delta"] = float(pretrained["test_auc"] - baseline["test_auc"])
+    result["random_per_class"] = {key: float(value) for key, value in baseline["per_class"].items()}
+    result["random_val_auc"] = float(baseline["val_auc"])
+    return result
 
 
 def parse_args() -> argparse.Namespace:
