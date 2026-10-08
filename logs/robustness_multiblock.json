@@ -1,0 +1,74 @@
+{
+  "variant": "multiblock",
+  "seeds": [
+    {
+      "seed": 0,
+      "ckpt": "checkpoints\\multiblock\\seed_0\\last.pt",
+      "pretrained_auc": 0.8332219466522031,
+      "pretrained_per_class": {
+        "NORM": 0.9076998751371599,
+        "MI": 0.7793027360988526,
+        "STTC": 0.8941293347846042,
+        "CD": 0.8226185512300519,
+        "HYP": 0.7623592360103464
+      },
+      "pretrained_val_auc": 0.8441535131037015
+    },
+    {
+      "seed": 1,
+      "ckpt": "checkpoints\\multiblock\\seed_1\\last.pt",
+      "pretrained_auc": 0.8267415560167339,
+      "pretrained_per_class": {
+        "NORM": 0.9002055822518193,
+        "MI": 0.7801831421006178,
+        "STTC": 0.8947027469993144,
+        "CD": 0.8000383798946211,
+        "HYP": 0.7585779288372974
+      },
+      "pretrained_val_auc": 0.8373144999142343
+    },
+    {
+      "seed": 2,
+      "ckpt": "checkpoints\\multiblock\\seed_2\\last.pt",
+      "pretrained_auc": 0.8312907421972884,
+      "pretrained_per_class": {
+        "NORM": 0.9003863601010674,
+        "MI": 0.7854269638128861,
+        "STTC": 0.8936200165499812,
+        "CD": 0.8032876407262802,
+        "HYP": 0.7737327297962273
+      },
+      "pretrained_val_auc": 0.8434654811870841
+    },
+    {
+      "seed": 3,
+      "ckpt": "checkpoints\\multiblock\\seed_3\\last.pt",
+      "pretrained_auc": 0.8219537664552441,
+      "pretrained_per_class": {
+        "NORM": 0.8893908627307545,
+        "MI": 0.7861297440423654,
+        "STTC": 0.875205587163807,
+        "CD": 0.8028955498275274,
+        "HYP": 0.7561470885117658
+      },
+      "pretrained_val_auc": 0.837879225758388
+    },
+    {
+      "seed": 4,
+      "ckpt": "checkpoints\\multiblock\\seed_4\\last.pt",
+      "pretrained_auc": 0.8249602468763081,
+      "pretrained_per_class": {
+        "NORM": 0.8989704070864917,
+        "MI": 0.7766571050308915,
+        "STTC": 0.8862720995471074,
+        "CD": 0.7939674860695197,
+        "HYP": 0.7689341366475301
+      },
+      "pretrained_val_auc": 0.8387493021023167
+    }
+  ],
+  "summary": {
+    "n": 5,
+    "pretrained": "0.8276 \u00b1 0.0046"
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "seeds": [
+    {
+      "seed": 0,
+      "ckpt": "checkpoints\\run1\\last.pt",
+      "pretrained_auc": 0.8733893593493699,
+      "scratch_auc": 0.8673244368662882,
+      "delta": 0.006064922483081658,
+      "pretrained_val_auc": 0.8830483667248764,
+      "scratch_val_auc": 0.8783370359494059,
+      "pretrained_best_epoch": 6,
+      "scratch_best_epoch": 5,
+      "pretrained_per_class": {
+        "NORM": 0.9245820037753142,
+        "MI": 0.858139894086496,
+        "STTC": 0.9184095078841318,
+        "CD": 0.8764961051514347,
+        "HYP": 0.7893192858494732
+      },
+      "scratch_per_class": {
+        "NORM": 0.9178221734542443,
+        "MI": 0.8507038834951456,
+        "STTC": 0.9136917331355576,
+        "CD": 0.8717211250521208,
+        "HYP": 0.7826832691943726
+      }
+    },
+    {
+      "seed": 1,
+      "ckpt": "checkpoints\\temporal\\seed_1\\last.pt",
+      "pretrained_auc": 0.8697347242559254,
+      "scratch_auc": 0.8683516708047812,
+      "delta": 0.0013830534511442005,
+      "pretrained_val_auc": 0.8775057566671924,
+      "scratch_val_auc": 0.8764109421397345,
+      "pretrained_best_epoch": 9,
+      "scratch_best_epoch": 6,
+      "pretrained_per_class": {
+        "NORM": 0.9173063259634828,
+        "MI": 0.8613967343336275,
+        "STTC": 0.9137100457012969,
+        "CD": 0.872396326901937,
+        "HYP": 0.7838641883792821
+      },
+      "scratch_per_class": {
+        "NORM": 0.918349792525887,
+        "MI": 0.8594307149161519,
+        "STTC": 0.9152872154255898,
+        "CD": 0.8692051097380691,
+        "HYP": 0.779485521418207
+      }
+    },
+    {
+      "seed": 2,
+      "ckpt": "checkpoints\\temporal\\seed_2\\last.pt",
+      "pretrained_auc": 0.8719097508638496,
+      "scratch_auc": 0.8739798219259269,
+      "delta": -0.00207007106207735,
+      "pretrained_val_auc": 0.8835411184589699,
+      "scratch_val_auc": 0.8789697482769162,
+      "pretrained_best_epoch": 6,
+      "scratch_best_epoch": 6,
+      "pretrained_per_class": {
+        "NORM": 0.9265184288302832,
+        "MI": 0.862253971756399,
+        "STTC": 0.9134078883665993,
+        "CD": 0.8767039962472992,
+        "HYP": 0.7806644691186676
+      },
+      "scratch_per_class": {
+        "NORM": 0.9215970671947061,
+        "MI": 0.8593049426301853,
+        "STTC": 0.9206756878943639,
+        "CD": 0.8747299192600735,
+        "HYP": 0.7935914926503059
+      }
+    },
+    {
+      "seed": 3,
+      "ckpt": "checkpoints\\temporal\\seed_3\\last.pt",
+      "pretrained_auc": 0.8761942425094968,
+      "scratch_auc": 0.8692101250453461,
+      "delta": 0.00698411746415073,
+      "pretrained_val_auc": 0.8814335779099794,
+      "scratch_val_auc": 0.876059624378426,
+      "pretrained_best_epoch": 6,
+      "scratch_best_epoch": 4,
+      "pretrained_per_class": {
+        "NORM": 0.9260862436464994,
+        "MI": 0.8633340688437776,
+        "STTC": 0.9190229788363967,
+        "CD": 0.8832066638868883,
+        "HYP": 0.7893212573339221
+      },
+      "scratch_per_class": {
+        "NORM": 0.9202710826911515,
+        "MI": 0.854692188879082,
+        "STTC": 0.9189188261187548,
+        "CD": 0.8651598214624161,
+        "HYP": 0.7870087060753265
+      }
+    },
+    {
+      "seed": 4,
+      "ckpt": "checkpoints\\temporal\\seed_4\\last.pt",
+      "pretrained_auc": 0.8702786309485502,
+      "scratch_auc": 0.8674018379861822,
+      "delta": 0.00287679296236798,
+      "pretrained_val_auc": 0.8851853172011728,
+      "scratch_val_auc": 0.8792639973264693,
+      "pretrained_best_epoch": 7,
+      "scratch_best_epoch": 5,
+      "pretrained_per_class": {
+        "NORM": 0.9200272428014681,
+        "MI": 0.8494351279788173,
+        "STTC": 0.9149072296865003,
+        "CD": 0.8798709298358667,
+        "HYP": 0.7871526244400984
+      },
+      "scratch_per_class": {
+        "NORM": 0.9164327064966514,
+        "MI": 0.8527482347749338,
+        "STTC": 0.9120573366433296,
+        "CD": 0.8613159091770592,
+        "HYP": 0.7944550028389376
+      }
+    }
+  ],
+  "summary": {
+    "n": 5,
+    "pretrained": "0.8723 \u00b1 0.0026",
+    "scratch": "0.8693 \u00b1 0.0028",
+    "delta": "0.0030 \u00b1 0.0037"
+  }
+}

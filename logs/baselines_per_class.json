@@ -1,0 +1,54 @@
+{
+  "macro": {
+    "frozen_jepa": "0.8198 \u00b1 0.0051",
+    "frozen_random": "0.7668 \u00b1 0.0059",
+    "finetune_jepa": "0.8723 \u00b1 0.0026",
+    "finetune_scratch": "0.8693 \u00b1 0.0028"
+  },
+  "per_class": {
+    "frozen_jepa": {
+      "NORM": "0.8960 \u00b1 0.0050",
+      "MI": "0.7775 \u00b1 0.0021",
+      "STTC": "0.8824 \u00b1 0.0119",
+      "CD": "0.7890 \u00b1 0.0093",
+      "HYP": "0.7539 \u00b1 0.0062"
+    },
+    "frozen_random": {
+      "NORM": "0.8312 \u00b1 0.0083",
+      "MI": "0.7321 \u00b1 0.0077",
+      "STTC": "0.8215 \u00b1 0.0077",
+      "CD": "0.7464 \u00b1 0.0048",
+      "HYP": "0.7028 \u00b1 0.0183"
+    },
+    "finetune_jepa": {
+      "NORM": "0.9229 \u00b1 0.0041",
+      "MI": "0.8589 \u00b1 0.0056",
+      "STTC": "0.9159 \u00b1 0.0026",
+      "CD": "0.8777 \u00b1 0.0040",
+      "HYP": "0.7861 \u00b1 0.0038"
+    },
+    "finetune_scratch": {
+      "NORM": "0.9189 \u00b1 0.0020",
+      "MI": "0.8554 \u00b1 0.0039",
+      "STTC": "0.9161 \u00b1 0.0036",
+      "CD": "0.8684 \u00b1 0.0053",
+      "HYP": "0.7874 \u00b1 0.0066"
+    }
+  },
+  "paired_finetune_minus_frozen": [
+    0.0596,
+    0.0493,
+    0.0504,
+    0.0601,
+    0.0434
+  ],
+  "paired_finetune_minus_scratch": [
+    0.0061,
+    0.0014,
+    -0.0021,
+    0.007,
+    0.0029
+  ],
+  "paired_finetune_minus_frozen_mean": "0.0525 \u00b1 0.0071",
+  "paired_finetune_minus_scratch_mean": "0.0030 \u00b1 0.0037"
+}
