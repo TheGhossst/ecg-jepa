@@ -62,6 +62,37 @@ def diagnostic_superclass_map(root: str | Path) -> dict[str, str]:
     return diagnostic["diagnostic_class"].astype(str).to_dict()
 
 
+def encode_named_labels(
+    raw_codes: str,
+    names: list[str],
+    code_to_name: dict[str, str] | None = None,
+) -> np.ndarray:
+    """Multi-hot vector over `names`.
+
+    Same rule as the superclass encoding: a key present in `scp_codes` counts,
+    including likelihood 0. `code_to_name` maps a statement code onto a coarser
+    label such as a diagnostic subclass.
+    """
+    present = set(ast.literal_eval(raw_codes))
+    hits: set[str] = set()
+    allowed = set(names)
+    for code in present:
+        label = code if code_to_name is None else code_to_name.get(code)
+        if label in allowed:
+            hits.add(label)
+    return np.array([1.0 if name in hits else 0.0 for name in names], dtype=np.float32)
+
+
+def diagnostic_label_names(root: str | Path) -> tuple[list[str], list[str], dict[str, str]]:
+    """Diagnostic statement names, subclass names, and statement-to-subclass map."""
+    table = pd.read_csv(Path(root) / "scp_statements.csv", index_col=0)
+    diagnostic = table[table["diagnostic"] == 1.0]
+    statements = [str(name) for name in diagnostic.index]
+    code_to_subclass = diagnostic["diagnostic_subclass"].astype(str).to_dict()
+    subclasses = sorted(set(code_to_subclass.values()))
+    return statements, subclasses, code_to_subclass
+
+
 def encode_superclasses(raw_codes: str, mapping: dict[str, str]) -> np.ndarray:
     """Multi-hot superclass vector.
 
