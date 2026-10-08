@@ -2,7 +2,9 @@
 
 Each seed trains on folds 1–8. The linear head is chosen by macro AUC on fold
 9. Fold 10 is scored once, after that choice, and is not used to pick a seed,
-an epoch, or a variant. The random-encoder probe uses the same head seed.
+an epoch, or a variant. Temporal and per-lead runs also probe a random
+encoder with the same head seed. Multiblock is compared with the temporal
+random-mask result, so it does not train another random encoder.
 """
 
 from __future__ import annotations
@@ -36,6 +38,25 @@ def checkpoint_path(variant: str, seed: int) -> Path:
     return Path("checkpoints") / variant / f"seed_{seed}" / "last.pt"
 
 
+def variant_config(variant: str, seed: int, epochs: int, ckpt_dir: str) -> Config:
+    if variant == "temporal":
+        token_mode, mask_mode = "temporal", "random"
+    elif variant == "per_lead":
+        token_mode, mask_mode = "per_lead", "random"
+    elif variant == "multiblock":
+        token_mode, mask_mode = "temporal", "multiblock"
+    else:
+        raise ValueError(f"unknown variant {variant}")
+    return Config(
+        seed=seed,
+        epochs=epochs,
+        token_mode=token_mode,
+        mask_mode=mask_mode,
+        ckpt_dir=ckpt_dir,
+        log_every=100,
+    )
+
+
 def train_seed(variant: str, seed: int, data_dir: str, epochs: int) -> Path:
     path = checkpoint_path(variant, seed)
     if path.is_file():
@@ -45,13 +66,7 @@ def train_seed(variant: str, seed: int, data_dir: str, epochs: int) -> Path:
     if variant == "temporal" and seed == 0 and reused.is_file():
         print(f"reusing seed 0 from {reused}", flush=True)
         return reused
-    cfg = Config(
-        seed=seed,
-        epochs=epochs,
-        token_mode=variant,
-        ckpt_dir=str(path.parent),
-        log_every=100,
-    )
+    cfg = variant_config(variant, seed, epochs, str(path.parent))
     print(f"training {variant} seed {seed}", flush=True)
     return run(cfg, data_dir=data_dir, synthetic=False)
 
@@ -75,23 +90,23 @@ def save_results(variant: str, seeds: list[dict]) -> None:
         json.dumps({"variant": variant, "seeds": seeds, "summary": summary}, indent=2),
         encoding="utf-8",
     )
-    print(
-        f"{variant} n={summary['n']} "
-        f"pretrained {summary['pretrained']} random {summary['random']} "
-        f"delta {summary['delta']}",
-        flush=True,
-    )
+    line = f"{variant} n={summary['n']} pretrained {summary['pretrained']}"
+    if summary.get("random"):
+        line += f" random {summary['random']} delta {summary['delta']}"
+    print(line, flush=True)
 
 
 def summarize(seeds: list[dict]) -> dict[str, str | int]:
     if not seeds:
-        return {"n": 0, "pretrained": "", "random": "", "delta": ""}
-    return {
+        return {"n": 0, "pretrained": ""}
+    summary: dict[str, str | int] = {
         "n": len(seeds),
         "pretrained": format_mean_std([row["pretrained_auc"] for row in seeds]),
-        "random": format_mean_std([row["random_auc"] for row in seeds]),
-        "delta": format_mean_std([row["delta"] for row in seeds]),
     }
+    if "random_auc" in seeds[0]:
+        summary["random"] = format_mean_std([row["random_auc"] for row in seeds])
+        summary["delta"] = format_mean_std([row["delta"] for row in seeds])
+    return summary
 
 
 def run_variant(
@@ -114,6 +129,7 @@ def run_variant(
             ckpt=str(ckpt),
             epochs=probe_epochs,
             seed=seed,
+            skip_random=(variant == "multiblock"),
         )
         row = {"seed": seed, "ckpt": str(ckpt), **probe}
         done[seed] = row
@@ -126,7 +142,7 @@ def run_variant(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Multi-seed pretrain and fold-10 probe")
     parser.add_argument("--data-dir", default="dataset")
-    parser.add_argument("--variant", choices=("temporal", "per_lead"), required=True)
+    parser.add_argument("--variant", choices=("temporal", "per_lead", "multiblock"), required=True)
     parser.add_argument("--seeds", default="0,1,2,3,4")
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--probe-epochs", type=int, default=20)
