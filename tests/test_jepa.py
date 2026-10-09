@@ -31,6 +31,7 @@ from ecg_jepa.amplitude import (
     head_checkpoint_path,
     predict_scores,
     prepare_recording,
+    recording_accuracy,
     save_two_branch,
     standardize,
     threshold_report,
@@ -386,10 +387,16 @@ class AmplitudeTests(unittest.TestCase):
         for name in SUPERCLASSES:
             self.assertAlmostEqual(report[name]["accuracy"], 1.0)
             self.assertAlmostEqual(report[name]["f1"], 1.0)
+        self.assertAlmostEqual(recording_accuracy(labels, scores), 1.0)
         scores[0, 0] = 0.49
         missed = threshold_report(labels, scores, threshold=0.5)
         self.assertAlmostEqual(missed["NORM"]["accuracy"], 0.75)
+        self.assertAlmostEqual(missed["NORM"]["precision"], 1.0)
+        self.assertAlmostEqual(missed["NORM"]["recall"], 0.5)
         self.assertAlmostEqual(missed["NORM"]["f1"], 2 / 3)
+        self.assertAlmostEqual(recording_accuracy(labels, scores), 0.75)
+        per_label = [missed[name]["accuracy"] for name in SUPERCLASSES]
+        self.assertNotAlmostEqual(sum(per_label) / len(per_label), 0.75)
 
     def test_saved_head_scores_one_ecg_and_leaves_the_encoder_file(self):
         cfg = _small_cfg(signal_length=40, patch_size=20, enc_dim=32)

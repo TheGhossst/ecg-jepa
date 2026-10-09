@@ -113,8 +113,37 @@ def threshold_report(
         precision = tp / (tp + fp) if tp + fp else 0.0
         recall = tp / (tp + fn) if tp + fn else 0.0
         f1 = (2.0 * precision * recall / (precision + recall)) if precision + recall else 0.0
-        report[name] = {"accuracy": float(accuracy), "f1": float(f1)}
+        report[name] = {
+            "accuracy": float(accuracy),
+            "precision": float(precision),
+            "recall": float(recall),
+            "f1": float(f1),
+            "tp": tp,
+            "fp": fp,
+            "fn": fn,
+            "tn": tn,
+        }
     return report
+
+
+def recording_accuracy(
+    labels: np.ndarray,
+    scores: np.ndarray,
+    threshold: float = DECISION_THRESHOLD,
+) -> float:
+    """Share of recordings whose five thresholded calls all match.
+
+    Per-label accuracy cannot produce this. One wrong call fails the recording.
+    """
+    labels = np.asarray(labels)
+    scores = np.asarray(scores)
+    if labels.shape != scores.shape or labels.ndim != 2 or labels.shape[1] != len(SUPERCLASSES):
+        raise ValueError(f"expected labels and scores shaped (n, {len(SUPERCLASSES)})")
+    if labels.shape[0] == 0:
+        raise ValueError("expected at least one recording")
+    predicted = scores >= threshold
+    truth = labels.astype(bool)
+    return float(np.all(predicted == truth, axis=1).mean())
 
 
 def amplitude_helps(deltas: list[float]) -> bool:
@@ -238,7 +267,10 @@ def train_two_branch(
     packed["val_auc"] = float(best_val)
     report = threshold_report(test_y.numpy(), test_scores)
     packed["threshold"] = DECISION_THRESHOLD
+    packed["fold10_exact_match"] = recording_accuracy(test_y.numpy(), test_scores)
     packed["fold10_accuracy"] = {name: report[name]["accuracy"] for name in SUPERCLASSES}
+    packed["fold10_precision"] = {name: report[name]["precision"] for name in SUPERCLASSES}
+    packed["fold10_recall"] = {name: report[name]["recall"] for name in SUPERCLASSES}
     packed["fold10_f1"] = {name: report[name]["f1"] for name in SUPERCLASSES}
     return packed, model
 
@@ -478,7 +510,7 @@ def run_amplitude(data_dir: str, seeds: list[int], device: str | None = None) ->
         "checkpoint": "frozen temporal",
         "head_checkpoint": "two_branch.pt beside the encoder; encoder file is not rewritten",
         "threshold": "0.5 per class, fixed before fold 10",
-        "fold10_decision": "per-label accuracy and F1 at that threshold",
+        "fold10_decision": "per-label precision, recall, and F1, plus exact-match accuracy",
     }
     payload: dict = {
         "protocol": protocol,
@@ -653,10 +685,19 @@ def run_amplitude(data_dir: str, seeds: list[int], device: str | None = None) ->
         )
         summary = summarize_rows(
             c_rows,
-            ("test_auc", "delta_vs_embedding", "delta_vs_concat", "hyp_pure_auc", "pure_delta_vs_embedding"),
+            (
+                "test_auc",
+                "delta_vs_embedding",
+                "delta_vs_concat",
+                "hyp_pure_auc",
+                "pure_delta_vs_embedding",
+                "fold10_exact_match",
+            ),
         )
         if len(c_rows) >= 2:
             summary["fold10_accuracy"] = summarize_label_values(c_rows, "fold10_accuracy")
+            summary["fold10_precision"] = summarize_label_values(c_rows, "fold10_precision")
+            summary["fold10_recall"] = summarize_label_values(c_rows, "fold10_recall")
             summary["fold10_f1"] = summarize_label_values(c_rows, "fold10_f1")
         payload["C"] = {
             "skipped": False,

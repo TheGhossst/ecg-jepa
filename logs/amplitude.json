@@ -10,7 +10,7 @@
     "checkpoint": "frozen temporal",
     "head_checkpoint": "two_branch.pt beside the encoder; encoder file is not rewritten",
     "threshold": "0.5 per class, fixed before fold 10",
-    "fold10_decision": "per-label accuracy and F1 at that threshold"
+    "fold10_decision": "per-label precision, recall, and F1, plus exact-match accuracy"
   },
   "untrained_peak_r_pure_auc": 0.7400199232585596,
   "A": {
@@ -501,7 +501,23 @@
         "checkpoint": "checkpoints/run1/two_branch.pt",
         "delta_vs_embedding": 0.03824735901255405,
         "delta_vs_concat": 0.01464304031849295,
-        "pure_delta_vs_embedding": 0.23406139315230234
+        "pure_delta_vs_embedding": 0.23406139315230234,
+        "fold10_exact_match": 0.47588717015468607,
+        "fold10_pure_hyp_exact_match": 0.14285714285714285,
+        "fold10_precision": {
+          "NORM": 0.7541589648798521,
+          "MI": 0.6805111821086262,
+          "STTC": 0.7294429708222812,
+          "CD": 0.7524752475247525,
+          "HYP": 0.6953125
+        },
+        "fold10_recall": {
+          "NORM": 0.8473520249221184,
+          "MI": 0.38727272727272727,
+          "STTC": 0.527831094049904,
+          "CD": 0.4596774193548387,
+          "HYP": 0.33969465648854963
+        }
       },
       {
         "test_auc": 0.8613599684906992,
@@ -534,7 +550,23 @@
         "checkpoint": "checkpoints/temporal/seed_1/two_branch.pt",
         "delta_vs_embedding": 0.040899580238892064,
         "delta_vs_concat": 0.01611480736435489,
-        "pure_delta_vs_embedding": 0.24610758559622192
+        "pure_delta_vs_embedding": 0.24610758559622192,
+        "fold10_exact_match": 0.5022747952684259,
+        "fold10_pure_hyp_exact_match": 0.05357142857142857,
+        "fold10_precision": {
+          "NORM": 0.76993583868011,
+          "MI": 0.6888888888888889,
+          "STTC": 0.7808564231738035,
+          "CD": 0.7553956834532374,
+          "HYP": 0.7355371900826446
+        },
+        "fold10_recall": {
+          "NORM": 0.8722741433021807,
+          "MI": 0.39454545454545453,
+          "STTC": 0.5950095969289827,
+          "CD": 0.42338709677419356,
+          "HYP": 0.33969465648854963
+        }
       },
       {
         "test_auc": 0.8584735339245825,
@@ -567,7 +599,23 @@
         "checkpoint": "checkpoints/temporal/seed_2/two_branch.pt",
         "delta_vs_embedding": 0.03697522701398415,
         "delta_vs_concat": 0.013812193468377032,
-        "pure_delta_vs_embedding": 0.24413370720188898
+        "pure_delta_vs_embedding": 0.24413370720188898,
+        "fold10_exact_match": 0.48771610555050043,
+        "fold10_pure_hyp_exact_match": 0.125,
+        "fold10_precision": {
+          "NORM": 0.7714552238805971,
+          "MI": 0.6920529801324503,
+          "STTC": 0.7577937649880095,
+          "CD": 0.7577854671280276,
+          "HYP": 0.72
+        },
+        "fold10_recall": {
+          "NORM": 0.8587746625129803,
+          "MI": 0.38,
+          "STTC": 0.6065259117082533,
+          "CD": 0.4415322580645161,
+          "HYP": 0.3435114503816794
+        }
       },
       {
         "test_auc": 0.8569734271470217,
@@ -600,7 +648,23 @@
         "checkpoint": "checkpoints/temporal/seed_3/two_branch.pt",
         "delta_vs_embedding": 0.040836281141261255,
         "delta_vs_concat": 0.015100746265112042,
-        "pure_delta_vs_embedding": 0.26314381641086193
+        "pure_delta_vs_embedding": 0.26314381641086193,
+        "fold10_exact_match": 0.4818016378525933,
+        "fold10_pure_hyp_exact_match": 0.08928571428571429,
+        "fold10_precision": {
+          "NORM": 0.7588454376163873,
+          "MI": 0.7105263157894737,
+          "STTC": 0.736231884057971,
+          "CD": 0.7612456747404844,
+          "HYP": 0.7049180327868853
+        },
+        "fold10_recall": {
+          "NORM": 0.8463136033229491,
+          "MI": 0.3927272727272727,
+          "STTC": 0.4875239923224568,
+          "CD": 0.4435483870967742,
+          "HYP": 0.3282442748091603
+        }
       },
       {
         "test_auc": 0.860554811616755,
@@ -633,7 +697,23 @@
         "checkpoint": "checkpoints/temporal/seed_4/two_branch.pt",
         "delta_vs_embedding": 0.03369256549293087,
         "delta_vs_concat": 0.012075895550661353,
-        "pure_delta_vs_embedding": 0.25332054309327035
+        "pure_delta_vs_embedding": 0.25332054309327035,
+        "fold10_exact_match": 0.4986351228389445,
+        "fold10_pure_hyp_exact_match": 0.07142857142857142,
+        "fold10_precision": {
+          "NORM": 0.76993583868011,
+          "MI": 0.6877076411960132,
+          "STTC": 0.77,
+          "CD": 0.7516778523489933,
+          "HYP": 0.7142857142857143
+        },
+        "fold10_recall": {
+          "NORM": 0.8722741433021807,
+          "MI": 0.37636363636363634,
+          "STTC": 0.5911708253358925,
+          "CD": 0.45161290322580644,
+          "HYP": 0.3244274809160305
+        }
       }
     ],
     "summary": {
@@ -791,6 +871,130 @@
             0.4651,
             0.4479,
             0.4462
+          ]
+        }
+      },
+      "fold10_exact_match": {
+        "mean_std": "0.4893 \u00b1 0.0111",
+        "values": [
+          0.4759,
+          0.5023,
+          0.4877,
+          0.4818,
+          0.4986
+        ]
+      },
+      "fold10_pure_hyp_exact_match": {
+        "mean_std": "0.0964 \u00b1 0.0370",
+        "values": [
+          0.1429,
+          0.0536,
+          0.125,
+          0.0893,
+          0.0714
+        ]
+      },
+      "fold10_precision": {
+        "NORM": {
+          "mean_std": "0.7649 \u00b1 0.0078",
+          "values": [
+            0.7542,
+            0.7699,
+            0.7715,
+            0.7588,
+            0.7699
+          ]
+        },
+        "MI": {
+          "mean_std": "0.6919 \u00b1 0.0112",
+          "values": [
+            0.6805,
+            0.6889,
+            0.6921,
+            0.7105,
+            0.6877
+          ]
+        },
+        "STTC": {
+          "mean_std": "0.7549 \u00b1 0.0218",
+          "values": [
+            0.7294,
+            0.7809,
+            0.7578,
+            0.7362,
+            0.77
+          ]
+        },
+        "CD": {
+          "mean_std": "0.7557 \u00b1 0.0039",
+          "values": [
+            0.7525,
+            0.7554,
+            0.7578,
+            0.7612,
+            0.7517
+          ]
+        },
+        "HYP": {
+          "mean_std": "0.7140 \u00b1 0.0153",
+          "values": [
+            0.6953,
+            0.7355,
+            0.72,
+            0.7049,
+            0.7143
+          ]
+        }
+      },
+      "fold10_recall": {
+        "NORM": {
+          "mean_std": "0.8594 \u00b1 0.0127",
+          "values": [
+            0.8474,
+            0.8723,
+            0.8588,
+            0.8463,
+            0.8723
+          ]
+        },
+        "MI": {
+          "mean_std": "0.3862 \u00b1 0.0079",
+          "values": [
+            0.3873,
+            0.3945,
+            0.38,
+            0.3927,
+            0.3764
+          ]
+        },
+        "STTC": {
+          "mean_std": "0.5616 \u00b1 0.0516",
+          "values": [
+            0.5278,
+            0.595,
+            0.6065,
+            0.4875,
+            0.5912
+          ]
+        },
+        "CD": {
+          "mean_std": "0.4440 \u00b1 0.0136",
+          "values": [
+            0.4597,
+            0.4234,
+            0.4415,
+            0.4435,
+            0.4516
+          ]
+        },
+        "HYP": {
+          "mean_std": "0.3351 \u00b1 0.0083",
+          "values": [
+            0.3397,
+            0.3397,
+            0.3435,
+            0.3282,
+            0.3244
           ]
         }
       }
