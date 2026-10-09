@@ -109,7 +109,7 @@ Fine-tuning trains the encoder and the linear layer together for 20 epochs at le
 | Fine-tuned from the pretrained encoder | 0.872 ± 0.003 |
 | Fine-tuned from random initialization | 0.869 ± 0.003 |
 
-Unfreezing the encoder adds about 0.05 on every seed. Starting from the pretrained weights adds 0.003 ± 0.004 over training from scratch, and one of the five seeds goes the other way.
+Unfreezing the encoder adds about 0.05 on every seed. Starting from the pretrained weights adds 0.003 ± 0.004 over training from scratch, and one of the five seeds goes the other way. The same comparison on 1% and 10% of folds 1–8 is in [Label budgets](#label-budgets).
 
 ### Locked per-class baselines
 
@@ -135,7 +135,76 @@ The same frozen encoders, with each new head chosen on fold 9:
 
 On fold 10 the frozen JEPA head scores pure myocardial infarction at 0.697 ± 0.008 and infarction that shares another superclass at 0.848 ± 0.003. Pure hypertrophy, 56 recordings, scores 0.568 ± 0.010. Hypertrophy that shares another label scores 0.804 ± 0.007. Overlap makes those two classes look easier, because the shared label is already visible. The isolated labels are the hard ones.
 
-A new pretraining method is not justified by these four checks. Supervised training from scratch matches JEPA fine-tuning. Subclass information is already in the frozen embedding, including in directions the five-class head does not use. Isolated hypertrophy is barely above chance, and training from scratch does not solve it either.
+A new pretraining method is not justified by these four checks. Supervised training from scratch matches JEPA fine-tuning when folds 1–8 are fully labeled. Subclass information is already in the frozen embedding, including in directions the five-class head does not use. Isolated hypertrophy is barely above chance, and training from scratch does not solve it either.
+
+### Label budgets
+
+The checkpoints stay frozen. The linear head and the fine-tune use the same hyperparameters as the full-label runs. Each seed draws its own subset of folds 1–8 and shares it across the linear head, the fine-tune, and the from-scratch run. Fold 9 stays the full monitoring fold (2183 recordings) and chooses the epoch. Fold 10 (2198) is scored once. A gap counts when the mean paired fold-10 difference is larger than its sample standard deviation.
+
+```bash
+python -m ecg_jepa.low_label --data-dir dataset --seeds 0,1,2,3,4
+```
+
+Folds 1–8 have 17418 recordings. One percent is 174 recordings. Ten percent is 1741.
+
+| Budget | Frozen JEPA | Frozen random | Fine-tuned JEPA | From scratch |
+| --- | --- | --- | --- | --- |
+| 1% | 0.606 ± 0.028 | 0.568 ± 0.023 | 0.756 ± 0.019 | 0.750 ± 0.011 |
+| 10% | 0.779 ± 0.017 | 0.675 ± 0.010 | 0.831 ± 0.002 | 0.817 ± 0.003 |
+
+At 1%, fine-tune minus scratch is −0.030, +0.009, +0.022, +0.014, +0.010. The mean is +0.005 ± 0.020. The frozen head minus scratch is −0.145 ± 0.027. JEPA does not win at the budget where a pretrained representation is supposed to matter.
+
+At 10%, fine-tune minus scratch is +0.016, +0.011, +0.016, +0.018, +0.011. The mean is +0.014 ± 0.003, and every seed is positive. The frozen head still loses to training from scratch, by −0.038 ± 0.015. The useful regime is a fine-tune on 10% of folds 1–8. The fully labeled result stays as measured: +0.003 ± 0.004.
+
+### Pure hypertrophy
+
+```bash
+python -m ecg_jepa.hyp_voltage --data-dir dataset
+```
+
+Of the 56 fold-10 recordings that are hypertrophy and nothing else, 50 are LVH (48 alone, one with septal hypertrophy, one with left atrial enlargement), 2 are RVH alone, and 4 are atrial enlargement with no ventricular hypertrophy (3 RAO/RAE, 1 LAO/LAE). None is both LVH and RVH.
+
+Peak R is the tallest positive sample on V1–V6, in millivolts, with no fitted threshold. On the same pure-versus-mixed split as the frozen head, it scores pure HYP at 0.740 and mixed HYP at 0.724. The frozen embedding scores pure HYP at 0.568 ± 0.010, and the highest seed is 0.582. The millivolt peak is above every seed. Mixed HYP is the other way around: the embedding scores 0.804 ± 0.007 there, because the shared label is already visible.
+
+The loader z-scores each lead before the encoder. The same peak after that z-score scores pure HYP at 0.535, below every frozen seed. The amplitude that separates isolated hypertrophy is the millivolt scale. The patch embedding is applied after that scale has been removed.
+
+### Amplitude features
+
+The features below are computed from the millivolt waveform before that z-score. Per-lead standard deviation is the scale the loader divides by. Peak-to-peak is max minus min. The linear head, the epoch rule, and the five temporal checkpoints are unchanged. A gap counts when the mean paired fold-10 difference is larger than its sample standard deviation.
+
+```bash
+python -m ecg_jepa.amplitude --data-dir dataset --seeds 0,1,2,3,4
+```
+
+| Model | Macro | HYP | Pure HYP |
+| --- | --- | --- | --- |
+| Amplitude only (24 features) | 0.722 ± 0.002 | 0.796 ± 0.002 | 0.813 ± 0.010 |
+| Frozen embedding | 0.820 ± 0.005 | 0.754 ± 0.006 | 0.568 ± 0.010 |
+| Embedding + amplitude | 0.844 ± 0.004 | 0.834 ± 0.004 | 0.761 ± 0.011 |
+| Two-branch head | 0.858 ± 0.004 | 0.865 ± 0.005 | 0.817 ± 0.009 |
+
+The untrained peak-R ranking is still pure HYP 0.740. A linear head on that single feature matches it on three seeds and lands on the reversed ranking (0.260) on the other two, so the one-feature head is not stable under the probe schedule. The 24-feature head is stable. It trails the frozen embedding on macro AUC and leads it on pure HYP.
+
+Concatenating the 24 features with the frozen embedding raises macro AUC by +0.024, +0.025, +0.023, +0.026, +0.022. The mean is +0.024 ± 0.002. HYP rises by +0.080 ± 0.004, pure HYP by +0.193 ± 0.016, and mixed HYP by about +0.050 on every seed. MI rises by about +0.023. NORM does not move. That cleared the seed spread, so the two-branch head was trained: a width-32 network on the amplitude features, concatenated with the frozen embedding, then a linear layer. The encoder weights were unchanged.
+
+The two-branch head is +0.038 ± 0.003 above the embedding and +0.014 ± 0.002 above the linear concatenation, both on every seed. Pure HYP is 0.817 ± 0.009, in line with the amplitude-only head. `embed_std` on the existing pretrain stayed near 0.68, so target-embedding LayerNorm stays off. CroPA, a new mask schedule, and a larger encoder stay off as well.
+
+That head is the classifier. The amplitude run writes it beside the encoder as `two_branch.pt`: `checkpoints/run1/two_branch.pt` for seed 0, and `checkpoints/temporal/seed_<n>/two_branch.pt` for the others. The file holds the width-32 amplitude branch, the linear layer, and the mean and scale of the 24 millivolt features fit on folds 1–8. The encoder file is not rewritten.
+
+```bash
+python -m ecg_jepa.predict --data-dir dataset --record records100/00000/00001_lr
+```
+
+The input is one recording in millivolts, leads I, II, V1–V6. It is cropped the same way as training. The encoder still sees each lead z-scored. The amplitude branch sees peak, standard deviation, and peak-to-peak, scaled with the statistics stored in the head. The printout is five sigmoid scores: `NORM`, `MI`, `STTC`, `CD`, `HYP`.
+
+A positive call is a score of at least 0.5 on that class. The threshold is fixed. Fold 9 still chooses the epoch. Fold 10 per-label accuracy and F1, five seeds:
+
+| | NORM | MI | STTC | CD | HYP |
+| --- | --- | --- | --- | --- | --- |
+| Accuracy | 0.823 ± 0.009 | 0.803 ± 0.003 | 0.853 ± 0.013 | 0.842 ± 0.002 | 0.905 ± 0.002 |
+| F1 | 0.809 ± 0.010 | 0.496 ± 0.008 | 0.643 ± 0.041 | 0.559 ± 0.010 | 0.456 ± 0.009 |
+
+Fold 10 has 262 hypertrophy recordings out of 2198, so never calling HYP is already 0.881 accurate. Epoch selection stays macro AUC.
 
 ## Tests
 
@@ -145,7 +214,7 @@ python -m unittest discover -s tests -v
 
 ## Deviations from the papers
 
-- The default tokens are temporal: all eight leads sit inside one patch. Per-lead tokens and multi-block masks were each compared across five seeds. Neither cleared a 0.015 fold-10 gap. CroPA is still open (see [TODO.md](TODO.md)).
+- The default tokens are temporal: all eight leads sit inside one patch. Per-lead tokens and multi-block masks were each compared across five seeds. Neither cleared a 0.015 fold-10 gap. CroPA stays off.
 - No waveform augmentations. The JEPA objective does not use them.
 - Tiny encoder, 100 Hz, PTB-XL folds 1–8 only. Learning rate is `1e-3` and drop-path is off. The paper figures (ViT-B, `2.5e-5`, 100 epochs, extra pretraining corpora, AUC around 0.89–0.94) are not a target for this run.
 - A fine-tune of the temporal encoder is reported above. It uses learning rate `1e-4` for 20 epochs, which is a small-model guess, not the paper's ViT-B rate.

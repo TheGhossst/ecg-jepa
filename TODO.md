@@ -18,6 +18,32 @@ Tracked work for this repo. Paper-scale reproduction is explicitly out of scope;
 - [x] Report mean ± sample std and paired seed differences. Pretrained minus scratch: +0.006, +0.001, −0.002, +0.007, +0.003. Mean +0.003 ± 0.004.
 - [x] Decide whether JEPA pretraining provides a fine-tuning advantage. It does not, when folds 1–8 are fully labeled. Unfreezing the encoder does. The gain over a frozen head is about +0.05 and is positive on every seed.
 
+## Label budgets
+
+- [x] Freeze the temporal checkpoints. Train the same linear head and the same fine-tune on 1% (174/17418) and 10% (1741/17418) of folds 1–8. Fold 9 chooses the epoch. Fold 10 is scored once. Hyperparameters are the full-label ones. Written to `logs/low_label.json`.
+- [x] At 1%, fine-tuned JEPA is 0.756 ± 0.019 and from scratch is 0.750 ± 0.011. Paired differences −0.030, +0.009, +0.022, +0.014, +0.010. Mean +0.005 ± 0.020, inside the seed spread. The frozen head is 0.606 ± 0.028, which is −0.145 ± 0.027 versus training from scratch.
+- [x] At 10%, fine-tuned JEPA is 0.831 ± 0.002 and from scratch is 0.817 ± 0.003. Paired differences +0.016, +0.011, +0.016, +0.018, +0.011. Mean +0.014 ± 0.003, above the seed spread, positive on every seed. The frozen head is 0.779 ± 0.017 and still loses to scratch (−0.038 ± 0.015).
+- [x] Decision: JEPA does not help at 1%. The fine-tune helps at 10%. The fully labeled conclusion stays. CroPA, target LayerNorm, a new mask, and ViT-B training stay off.
+
+## Pure HYP
+
+- [x] Break out the 56 fold-10 pure-HYP recordings. 50 LVH, 2 RVH, 4 atrial enlargement (3 RAO/RAE, 1 LAO/LAE). No recording is both LVH and RVH. Written to `logs/hyp_voltage.json`.
+- [x] Peak R in millivolts, tallest positive sample on V1–V6, scores pure HYP at 0.740 and mixed HYP at 0.724. The frozen embedding is 0.568 ± 0.010 on pure HYP. The millivolt peak is above every seed.
+- [x] The same peak after the loader's per-lead z-score scores pure HYP at 0.535, below every seed. The separating feature is absolute voltage, removed before the patch embedding. A larger encoder is not justified. `embed_std` stayed near 0.68, so the LayerNorm variant in `jepa.py` stays off.
+
+## Amplitude features
+
+- [x] A. Linear head on millivolt features, folds 1–8, fold 9 chooses the epoch, fold 10 scored once. Untrained peak R remains pure HYP 0.740. The one-feature head matches that on three seeds and reverses it on two. Per-lead peak, standard deviation, and peak-to-peak (24 features): macro 0.722 ± 0.002, HYP 0.796 ± 0.002, pure HYP 0.813 ± 0.010. Written to `logs/amplitude.json`.
+- [x] B. Same head on the frozen embedding concatenated with those 24 features. Macro 0.844 ± 0.004 versus embedding 0.820 ± 0.005. Paired +0.024, +0.025, +0.023, +0.026, +0.022. Mean +0.024 ± 0.002. Pure HYP +0.193 ± 0.016. The checkpoint was not updated.
+- [x] C. Ran because B cleared the seed spread. Width-32 amplitude branch plus the frozen embedding: macro 0.858 ± 0.004, which is +0.014 ± 0.002 over the linear concatenation and +0.038 ± 0.003 over the embedding. Pure HYP 0.817 ± 0.009. Encoder weights stayed put.
+- [x] Decision: attach millivolt amplitude beside the frozen encoder. Do not change the pretraining objective. LayerNorm stays off. A larger encoder stays off.
+
+## Classification
+
+- [x] Save the width-32 two-branch head beside each temporal encoder as `two_branch.pt`. The file holds the head weights and the folds 1–8 amplitude mean and scale. The encoder file stays `last.pt`.
+- [x] `python -m ecg_jepa.predict` reads one millivolt ECG and prints five sigmoid scores (`NORM`, `MI`, `STTC`, `CD`, `HYP`).
+- [x] Threshold 0.5 per class, fixed before fold 10. Fold 9 still chooses the epoch. Fold-10 accuracy is NORM 0.823 ± 0.009, MI 0.803 ± 0.003, STTC 0.853 ± 0.013, CD 0.842 ± 0.002, HYP 0.905 ± 0.002. F1 is NORM 0.809 ± 0.010, MI 0.496 ± 0.008, STTC 0.643 ± 0.041, CD 0.559 ± 0.010, HYP 0.456 ± 0.009. The same head retraining matched the logged macro AUC on every seed. Written to `logs/amplitude.json`.
+
 ## Next experiments
 
 - [x] Test CroPA only if fine-tuning results justify further JEPA changes. They do not. CroPA stays off.
