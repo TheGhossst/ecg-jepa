@@ -12,6 +12,7 @@ import torch
 from ecg_jepa.config import Config
 from ecg_jepa.downstream import positive_subset_auc, remove_head_directions
 from ecg_jepa.data.ptbxl import (
+    SUPERCLASSES,
     SyntheticECG,
     encode_named_labels,
     encode_superclasses,
@@ -23,7 +24,26 @@ from ecg_jepa.data.ptbxl import (
 )
 from ecg_jepa.probe import macro_auc, roc_auc
 from ecg_jepa.robustness import sample_mean_std
+from ecg_jepa.amplitude import (
+    TwoBranch,
+    amplitude_features,
+    amplitude_helps,
+    head_checkpoint_path,
+    predict_scores,
+    prepare_recording,
+    save_two_branch,
+    standardize,
+    threshold_report,
+)
 from ecg_jepa.finetune import EncoderClassifier, finetune_split, unfreeze
+from ecg_jepa.hyp_voltage import (
+    beats_embedding,
+    hyp_bucket,
+    hyp_gap_reason,
+    hyp_subclasses,
+    peak_r_amplitude,
+)
+from ecg_jepa.low_label import budget_count, budget_indices, clears_seed_spread
 from ecg_jepa.models.jepa import (
     JEPA,
     block_length_bounds,
@@ -305,6 +325,155 @@ class JEPATests(unittest.TestCase):
             self.assertIn("context_encoder", saved)
             self.assertIn("target_encoder", saved)
             self.assertEqual(saved["step"], 1)
+
+
+class AmplitudeTests(unittest.TestCase):
+    def test_amplitude_features_are_per_lead_and_ignore_zscore_scale(self):
+        signal = np.zeros((8, 4), dtype=np.float32)
+        signal[0] = np.array([0, 0, 0, 4], dtype=np.float32)
+        signal[6, 1] = 2
+        features = amplitude_features(signal)
+        self.assertEqual(features.shape, (24,))
+        self.assertAlmostEqual(float(features[0]), 4.0)
+        self.assertAlmostEqual(float(features[6]), 2.0)
+        self.assertAlmostEqual(float(features[8]), float(np.std(signal[0])))
+        self.assertAlmostEqual(float(features[16]), 4.0)
+        self.assertAlmostEqual(float(features[22]), 2.0)
+        self.assertAlmostEqual(peak_r_amplitude(signal), 2.0)
+
+    def test_scaler_uses_the_training_fold_only(self):
+        train = torch.tensor([[0.0], [2.0], [4.0]])
+        held_out = torch.tensor([[100.0]])
+        scaled_train, scaled_held = standardize(train, held_out)
+        self.assertAlmostEqual(float(scaled_train.mean()), 0.0, places=5)
+        self.assertAlmostEqual(float(scaled_train[0]), float((0.0 - 2.0) / train.std(unbiased=False)))
+        self.assertGreater(float(scaled_held), 5.0)
+
+    def test_two_branch_trains_the_amplitude_path_only(self):
+        model = TwoBranch(embed_dim=8, n_amplitude=4, n_classes=5, width=8)
+        loss = model(torch.randn(3, 8), torch.randn(3, 4)).sum()
+        loss.backward()
+        self.assertIsNotNone(model.head.weight.grad)
+        self.assertIsNotNone(model.amplitude[0].weight.grad)
+        self.assertEqual(tuple(model(torch.randn(2, 8), torch.randn(2, 4)).shape), (2, 5))
+
+    def test_branch_runs_only_when_the_macro_gap_clears_the_spread(self):
+        published = [0.006, 0.001, -0.002, 0.007, 0.003]
+        self.assertFalse(amplitude_helps(published))
+        self.assertTrue(amplitude_helps([0.02, 0.018, 0.021, 0.019, 0.022]))
+
+    def test_threshold_half_counts_as_positive(self):
+        labels = np.array(
+            [
+                [1, 0, 1, 0, 0],
+                [1, 1, 0, 0, 1],
+                [0, 1, 0, 1, 0],
+                [0, 0, 1, 1, 1],
+            ],
+            dtype=np.float32,
+        )
+        scores = np.array(
+            [
+                [0.9, 0.2, 0.8, 0.1, 0.4],
+                [0.5, 0.7, 0.4, 0.2, 0.8],
+                [0.4, 0.9, 0.1, 0.6, 0.2],
+                [0.1, 0.3, 0.7, 0.5, 0.5],
+            ],
+            dtype=np.float64,
+        )
+        report = threshold_report(labels, scores, threshold=0.5)
+        self.assertEqual(set(report), set(SUPERCLASSES))
+        for name in SUPERCLASSES:
+            self.assertAlmostEqual(report[name]["accuracy"], 1.0)
+            self.assertAlmostEqual(report[name]["f1"], 1.0)
+        scores[0, 0] = 0.49
+        missed = threshold_report(labels, scores, threshold=0.5)
+        self.assertAlmostEqual(missed["NORM"]["accuracy"], 0.75)
+        self.assertAlmostEqual(missed["NORM"]["f1"], 2 / 3)
+
+    def test_saved_head_scores_one_ecg_and_leaves_the_encoder_file(self):
+        cfg = _small_cfg(signal_length=40, patch_size=20, enc_dim=32)
+        encoder = JEPA(cfg).target_encoder
+        signal = np.random.default_rng(0).normal(size=(8, 50)).astype(np.float32)
+        signal += np.linspace(-0.2, 0.4, 8, dtype=np.float32)[:, None]
+        mean = torch.zeros(24)
+        std = torch.ones(24)
+        wave, scaled = prepare_recording(signal, cfg.signal_length, mean, std)
+        doubled_wave, doubled_scaled = prepare_recording(signal * 2, cfg.signal_length, mean, std)
+        self.assertTrue(torch.allclose(wave, doubled_wave, atol=1e-5))
+        self.assertFalse(torch.allclose(scaled, doubled_scaled))
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            encoder_path = root / "last.pt"
+            torch.save(
+                {"config": cfg.__dict__, "target_encoder": encoder.state_dict()},
+                encoder_path,
+            )
+            original = encoder_path.read_bytes()
+            head = TwoBranch(cfg.enc_dim, 24, 5, width=8)
+            path = save_two_branch(encoder_path, head, mean, std, seed=0, signal_length=cfg.signal_length)
+            self.assertEqual(path, head_checkpoint_path(encoder_path))
+            self.assertEqual(path.name, "two_branch.pt")
+            scores = predict_scores(signal, path, device="cpu")
+            self.assertEqual(list(scores), list(SUPERCLASSES))
+            for value in scores.values():
+                self.assertGreaterEqual(value, 0.0)
+                self.assertLessEqual(value, 1.0)
+            self.assertEqual(encoder_path.read_bytes(), original)
+            with self.assertRaises(ValueError):
+                predict_scores(signal.T, path, device="cpu")
+
+
+class BudgetTests(unittest.TestCase):
+    def test_percent_budgets_are_stable_shares_of_folds_1_to_8(self):
+        self.assertEqual(budget_count(17441, 1), 174)
+        self.assertEqual(budget_count(17441, 10), 1744)
+        one = budget_indices(17441, 1, seed=0)
+        ten = budget_indices(17441, 10, seed=0)
+        self.assertEqual(len(one), 174)
+        self.assertEqual(len(ten), 1744)
+        self.assertTrue(np.array_equal(one, budget_indices(17441, 1, seed=0)))
+        self.assertFalse(np.array_equal(one, budget_indices(17441, 1, seed=1)))
+        self.assertFalse(np.array_equal(one, ten[:174]))
+        self.assertGreaterEqual(int(one[0]), 0)
+        self.assertLess(int(one[-1]), 17441)
+        self.assertEqual(len(np.unique(one)), 174)
+        self.assertTrue(np.all(one[1:] > one[:-1]))
+
+    def test_full_label_finetune_gap_does_not_clear_the_seed_spread(self):
+        published = [0.006, 0.001, -0.002, 0.007, 0.003]
+        self.assertFalse(clears_seed_spread(published))
+        self.assertTrue(clears_seed_spread([0.05, 0.04, 0.06, 0.05, 0.04]))
+        self.assertFalse(clears_seed_spread([0.02]))
+
+
+class HypVoltageTests(unittest.TestCase):
+    def test_peak_r_is_the_tallest_precordial_sample(self):
+        signal = np.zeros((8, 40), dtype=np.float32)
+        signal[0, 10] = 5.0
+        signal[6, 20] = 2.5
+        signal[2, 4] = -3.0
+        self.assertAlmostEqual(peak_r_amplitude(signal), 2.5)
+
+    def test_hyp_buckets_name_lvh_rvh_and_the_rest(self):
+        code_to_class = {"LVH": "HYP", "RVH": "HYP", "LAO/LAE": "HYP", "NORM": "NORM"}
+        code_to_subclass = {"LVH": "LVH", "RVH": "RVH", "LAO/LAE": "LAO/LAE", "NORM": "NORM"}
+        hits = hyp_subclasses("{'LVH': 100.0, 'NORM': 0.0}", code_to_class, code_to_subclass)
+        self.assertEqual(hits, {"LVH"})
+        self.assertEqual(hyp_bucket({"LVH", "LAO/LAE"}), "LVH")
+        self.assertEqual(hyp_bucket({"RVH"}), "RVH")
+        self.assertEqual(hyp_bucket({"LVH", "RVH"}), "LVH+RVH")
+        self.assertEqual(hyp_bucket({"LAO/LAE", "SEHYP"}), "rest")
+
+    def test_peak_r_beats_the_embedding_only_above_every_seed(self):
+        seeds = [0.556, 0.582]
+        self.assertTrue(beats_embedding(0.60, seeds))
+        self.assertFalse(beats_embedding(0.57, seeds))
+        self.assertFalse(beats_embedding(0.582, seeds))
+        self.assertEqual(hyp_gap_reason(True, True), "temporal")
+        self.assertEqual(hyp_gap_reason(True, False), "scale")
+        self.assertEqual(hyp_gap_reason(False, True), "temporal_zscore")
+        self.assertEqual(hyp_gap_reason(False, False), "sample_size")
 
 
 if __name__ == "__main__":
