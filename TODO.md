@@ -42,7 +42,7 @@ Tracked work for this repo. Paper-scale reproduction is explicitly out of scope;
 
 - [x] Save the width-32 two-branch head beside each temporal encoder as `two_branch.pt`. The file holds the head weights and the folds 1–8 amplitude mean and scale. The encoder file stays `last.pt`.
 - [x] `python -m ecg_jepa.predict` reads one millivolt ECG and prints five sigmoid scores (`NORM`, `MI`, `STTC`, `CD`, `HYP`).
-- [x] Threshold 0.5 per class, fixed before fold 10. Fold 9 still chooses the epoch. Fold-10 accuracy is NORM 0.823 ± 0.009, MI 0.803 ± 0.003, STTC 0.853 ± 0.013, CD 0.842 ± 0.002, HYP 0.905 ± 0.002. F1 is NORM 0.809 ± 0.010, MI 0.496 ± 0.008, STTC 0.643 ± 0.041, CD 0.559 ± 0.010, HYP 0.456 ± 0.009. The same head retraining matched the logged macro AUC on every seed. Written to `logs/amplitude.json`.
+- [x] Threshold 0.5 per class, fixed before fold 10. Fold 9 still chooses the epoch. Fold-10 exact-match accuracy, all five calls correct, is 0.489 ± 0.011. Per-label accuracy averages about 0.845 because one wrong call does not fail the other four. HYP precision is 0.714 ± 0.015 and HYP recall is 0.335 ± 0.008. On the 56 pure-HYP recordings the full five-label call is right for 0.096 ± 0.037. Written to `logs/amplitude.json`.
 
 ## Next experiments
 
