@@ -1,0 +1,69 @@
+{
+  "n_fold10": 2198,
+  "n_pure": 56,
+  "n_mixed": 206,
+  "subclasses": {
+    "buckets": {
+      "LVH": 50,
+      "RVH": 2,
+      "LVH+RVH": 0,
+      "rest": 4
+    },
+    "inclusive": {
+      "LVH": 50,
+      "RVH": 2,
+      "rest": 4
+    },
+    "histogram": {
+      "LAO/LAE": 1,
+      "LAO/LAE+LVH": 1,
+      "LVH": 48,
+      "LVH+SEHYP": 1,
+      "RAO/RAE": 3,
+      "RVH": 2
+    },
+    "rest_detail": {
+      "LAO/LAE": 1,
+      "RAO/RAE": 3
+    }
+  },
+  "peak_r_mv": {
+    "pure_auc": 0.7400199232585596,
+    "mixed_auc": 0.7243641177886544,
+    "n_pure": 56,
+    "n_mixed": 206
+  },
+  "peak_r_zscore": {
+    "pure_auc": 0.5346720041322314,
+    "mixed_auc": 0.5094354288694536,
+    "n_pure": 56,
+    "n_mixed": 206
+  },
+  "embedding_pure_auc": "0.5684 \u00b1 0.0101",
+  "embedding_pure_by_seed": [
+    {
+      "seed": 0,
+      "pure_auc": 0.5742510330578512
+    },
+    {
+      "seed": 1,
+      "pure_auc": 0.5820819805194806
+    },
+    {
+      "seed": 2,
+      "pure_auc": 0.5625830135773318
+    },
+    {
+      "seed": 3,
+      "pure_auc": 0.5562370867768595
+    },
+    {
+      "seed": 4,
+      "pure_auc": 0.5667798110979929
+    }
+  ],
+  "raw_beats_embedding": true,
+  "zscore_beats_embedding": false,
+  "reason": "scale",
+  "diagnosis": "Peak R in millivolts beats the frozen embedding on pure HYP. The same peak after the per-lead z-score does not. Absolute voltage is removed before the encoder, so a shorter patch on z-scored inputs does not restore it."
+}
